@@ -1,0 +1,220 @@
+/* Base App styles */
+.App {
+  min-height: 100vh;
+  background-color: #fafafa;
+  transition: all 0.3s ease;
+}
+
+/* Header (sticky, centered, with buttons) */
+.app-header {
+  background-color: #fff;
+  padding: 1rem;
+  border-bottom: 1px solid #dbdbdb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  max-width: 935px;
+  margin: 0 auto;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #262626;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.create-post-button,
+.theme-toggle-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.create-post-button {
+  background: #0095f6;
+  color: white;
+  border: none;
+}
+
+.theme-toggle-button {
+  background: transparent;
+  border: 1px solid #dbdbdb;
+  color: #262626;
+}
+
+.theme-toggle-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode overrides */
+.dark-mode {
+  background-color: #121212;
+  color: white;
+}
+
+.dark-mode .app-header {
+  background-color: #262626;
+  border-bottom-color: #363636;
+}
+
+.dark-mode .app-header h1 {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .theme-toggle-button {
+  border-color: #363636;
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 935px) {
+  .app-header {
+    padding: 1rem 15px;
+  }
+}
+
+@media (max-width: 614px) {
+  .App {
+    padding: 0;
+  }
+
+  .app-header {
+    padding: 0.75rem 15px;
+  }
+
+  .create-post-button {
+    font-size: 14px;
+    padding: 6px 12px;
+  }
+}
+
+/* Feed styles */
+.feed {
+  max-width: 935px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.post {
+  background: white;
+  border: 1px solid #dbdbdb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #efefef;
+}
+
+.timestamp {
+  font-size: 0.9rem;
+  color: #8e8e8e;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: #ed4956;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s ease;
+}
+
+.delete-button:hover {
+  color: #ff1744;
+}
+
+.post-image-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  /* Maintains square aspect ratio */
+}
+
+.post img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.caption {
+  padding: 16px;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #262626;
+  border-top: 1px solid #efefef;
+}
+
+/* Dark mode support */
+.dark-mode .post {
+  background: #262626;
+  border-color: #363636;
+}
+
+.dark-mode .post-header {
+  border-color: #363636;
+}
+
+.dark-mode .caption {
+  color: #fafafa;
+  border-color: #363636;
+}
+
+.dark-mode .timestamp {
+  color: #a8a8a8;
+}
+
+/* Responsive layout for feed */
+@media (max-width: 935px) {
+  .feed {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 614px) {
+  .feed {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+  }
+
+  .post {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-bottom: 8px;
+  }
+}
