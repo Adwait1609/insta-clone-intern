@@ -1,3 +1,6 @@
+/* Import Google Fonts for funky caption */
+@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
+
 /* Feed Container */
 .feed {
   max-width: 614px;
@@ -55,11 +58,19 @@
 /* Caption and Metadata */
 .caption {
   padding: 16px;
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: 'Righteous', cursive;
+  font-size: 15px;
+  line-height: 1.6;
   color: #262626;
   border-top: 1px solid #efefef;
   word-wrap: break-word;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.caption:hover {
+  transform: scale(1.01);
+  background-color: #fafafa;
 }
 
 .timestamp {

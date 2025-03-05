@@ -1,19 +1,12 @@
 import axios from 'axios';
 import React, { useCallback, useRef, useState } from 'react';
-import ReactCrop from 'react-image-crop';
+import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import './CreatePost.css';
 
 const CreatePost = ({ onPostCreated, onClose }) => {
   const [src, setSrc] = useState(null);
-  const [crop, setCrop] = useState({
-    unit: 'px',
-    width: 200,
-    height: 200,
-    x: 0,
-    y: 0,
-    aspect: 1
-  });
+  const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null);
   const [caption, setCaption] = useState('');
   const [mode, setMode] = useState('file');
@@ -23,39 +16,45 @@ const CreatePost = ({ onPostCreated, onClose }) => {
   const imgRef = useRef(null);
   const previewCanvasRef = useRef(null);
 
-  // Adjust image display and initialize crop based on container dimensions
-  const onImageLoad = useCallback((img) => {
+  // This function centers and creates a default crop when image loads
+  function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
+    return centerCrop(
+      makeAspectCrop(
+        {
+          unit: '%',
+          width: 90,
+        },
+        aspect,
+        mediaWidth,
+        mediaHeight
+      ),
+      mediaWidth,
+      mediaHeight
+    );
+  }
+
+  const onImageLoad = useCallback((e) => {
+    const img = e.currentTarget;
     imgRef.current = img;
-    img.crossOrigin = 'anonymous';
 
-    const maxWidth = Math.min(800, window.innerWidth - 40);
-    const maxHeight = Math.min(600, window.innerHeight - 200);
+    // Set crossOrigin for URL images
+    img.crossOrigin = "anonymous";
 
-    const { naturalWidth: width, naturalHeight: height } = img;
-    const aspectRatio = width / height;
+    const { width, height } = img;
+    const aspect = 1;
 
-    let displayWidth, displayHeight;
-
-    if (aspectRatio > 1) {
-      displayWidth = Math.min(maxWidth, width);
-      displayHeight = displayWidth / aspectRatio;
-    } else {
-      displayHeight = Math.min(maxHeight, height);
-      displayWidth = displayHeight * aspectRatio;
-    }
-
-    // Set initial square crop
-    const cropSize = Math.min(displayWidth, displayHeight);
-    const x = (displayWidth - cropSize) / 2;
-    const y = (displayHeight - cropSize) / 2;
+    // Calculate crop area
+    const cropWidth = Math.min(width, height);
+    const x = (width - cropWidth) / 2;
+    const y = (height - cropWidth) / 2;
 
     const newCrop = {
       unit: 'px',
-      width: cropSize,
-      height: cropSize,
-      x: x,
-      y: y,
-      aspect: 1
+      x,
+      y,
+      width: cropWidth,
+      height: cropWidth,
+      aspect
     };
 
     setCrop(newCrop);
@@ -64,6 +63,7 @@ const CreatePost = ({ onPostCreated, onClose }) => {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
+      setCrop(undefined); // Reset crop state
       const reader = new FileReader();
       reader.onload = (e) => {
         setSrc(e.target.result);
@@ -76,55 +76,86 @@ const CreatePost = ({ onPostCreated, onClose }) => {
 
   const handleUrlChange = (e) => {
     const url = e.target.value;
-    if (url && /^(https?:\/\/).+\.(jpeg|jpg|gif|png|svg)$/.test(url)) {
-      setSrc(url);
-      setIsCropping(true);
-      setCropPreview(null);
+    setSrc(url);
+
+    if (url) {
+      // Less restrictive URL validation
+      const isValidUrl = /^(https?:\/\/).*\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(url);
+
+      if (isValidUrl) {
+        // Create a new image to test loading and CORS
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          setSrc(url);
+          setIsCropping(true);
+          setCropPreview(null);
+          setCrop(undefined);
+        };
+        img.onerror = () => {
+          alert("Unable to load image. Please try another URL or upload an image.");
+        };
+        img.src = url;
+      }
     }
   };
 
   const getCroppedImg = useCallback(async () => {
     if (!completedCrop || !imgRef.current) return null;
 
-    const image = imgRef.current;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // Set canvas size to desired output size
+    // Set canvas dimensions to match crop size
     canvas.width = completedCrop.width;
     canvas.height = completedCrop.height;
 
-    // Draw the cropped image
-    ctx.drawImage(
-      image,
-      completedCrop.x,
-      completedCrop.y,
-      completedCrop.width,
-      completedCrop.height,
-      0,
-      0,
-      completedCrop.width,
-      completedCrop.height
-    );
+    try {
+      // Draw white background first
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Convert to blob with better quality
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            console.error('Canvas is empty');
-            return;
-          }
-          resolve(URL.createObjectURL(blob));
-        },
-        'image/jpeg',
-        1.0 // Maximum quality
+      // Draw the cropped image
+      ctx.drawImage(
+        imgRef.current,
+        completedCrop.x,
+        completedCrop.y,
+        completedCrop.width,
+        completedCrop.height,
+        0,
+        0,
+        completedCrop.width,
+        completedCrop.height
       );
-    });
+
+      // Convert to blob with better quality
+      return new Promise((resolve) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              console.error('Canvas is empty');
+              return;
+            }
+            const croppedImageUrl = URL.createObjectURL(blob);
+            resolve(croppedImageUrl);
+          },
+          'image/jpeg',
+          1.0 // Maximum quality
+        );
+      });
+    } catch (err) {
+      console.error('Error during cropping:', err);
+      throw new Error('Failed to crop image. Please try again.');
+    }
   }, [completedCrop]);
 
   const generatePreview = useCallback(async () => {
+    if (!completedCrop || !imgRef.current) {
+      alert('Please select a crop area first');
+      return;
+    }
+
     try {
       const croppedImage = await getCroppedImg();
       if (croppedImage) {
@@ -135,7 +166,7 @@ const CreatePost = ({ onPostCreated, onClose }) => {
       console.error('Error generating preview:', e);
       alert('Failed to generate crop preview. Please try again.');
     }
-  }, [getCroppedImg]);
+  }, [getCroppedImg, completedCrop]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -207,46 +238,44 @@ const CreatePost = ({ onPostCreated, onClose }) => {
                   type="url"
                   value={src || ''}
                   onChange={handleUrlChange}
-                  placeholder="Paste image URL"
+                  placeholder="Paste image URL here"
                   className="url-input insta-url-input"
                 />
                 <small className="supported-formats">
-                  Supports: JPEG, PNG, GIF, SVG
+                  Supports: JPG, PNG, GIF, WEBP (must start with http:// or https://)
                 </small>
               </div>
             )}
           </div>
 
           {src && (
-            <div className="crop-container insta-crop-area">
+            <div className="crop-container">
               {isCropping ? (
                 <div className="crop-wrapper">
                   <ReactCrop
-                    src={src}
-                    onImageLoad={onImageLoad}
                     crop={crop}
-                    onChange={(c) => setCrop(c)}
+                    onChange={(_, percentCrop) => setCrop(percentCrop)}
                     onComplete={(c) => setCompletedCrop(c)}
                     aspect={1}
-                    className="react-crop"
-                    ruleOfThirds
+                    className="custom-react-crop"
                     minWidth={100}
                     minHeight={100}
-                    circularCrop={false}
-                    style={{
-                      background: 'transparent',
-                      maxHeight: '60vh',
-                      width: '100%',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}
-                  />
+                  >
+                    <img
+                      ref={imgRef}
+                      alt="Crop me"
+                      src={src}
+                      onLoad={onImageLoad}
+                      crossOrigin="anonymous"
+                      style={{ maxHeight: '60vh', maxWidth: '100%' }}
+                    />
+                  </ReactCrop>
                   <div className="crop-controls">
                     <button
                       type="button"
                       className="insta-button primary"
                       onClick={generatePreview}
+                      disabled={!crop?.width || !crop?.height}
                     >
                       ✂️ Apply Crop
                     </button>
